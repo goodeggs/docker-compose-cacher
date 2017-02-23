@@ -1,0 +1,8 @@
+[package]
+name = "docker-compose-cacher"
+version = "0.1.0"
+authors = ["Bob Zoller <bob@zoller.us>"]
+
+[dependencies]
+yaml-rust = "*"
+sha1 = "*"

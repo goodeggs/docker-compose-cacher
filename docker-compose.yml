@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+  mongo:
+    image: mongo:3.2.11
+    command: --smallfiles --storageEngine wiredTiger
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-shopping-data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3.5.3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  redis:
+    image: redis:2.8.21
+    ports:
+      - 6379:6379
+
+volumes:
+  mongo-shopping-data:
+    external: true
+
