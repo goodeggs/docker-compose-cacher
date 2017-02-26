@@ -7,3 +7,5 @@ authors = ["Bob Zoller <bob@zoller.us>"]
 yaml-rust = "*"
 sha1 = "*"
 glob = "*"
+getopts = "*"
+shellexpand = "*"

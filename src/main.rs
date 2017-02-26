@@ -1,7 +1,11 @@
 extern crate glob;
 extern crate sha1;
 extern crate yaml_rust;
+extern crate getopts;
+extern crate shellexpand;
 
+use getopts::Options;
+use std::env;
 use std::fs;
 use std::fs::File;
 use glob::glob;
@@ -9,13 +13,33 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::process::Command;
 use std::collections::HashSet;
+use shellexpand::tilde;
 
 use yaml_rust::{Yaml,YamlLoader};
 
-static CACHE_PATH: &'static str = "/Users/bob/.docker-compose-cacher";
-
 fn main() {
-  fs::create_dir_all(CACHE_PATH).unwrap();
+    let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
+
+    let mut opts = Options::new();
+    opts.optopt("d", "", "set cache directory", "NAME");
+    opts.optflag("h", "help", "print this help menu");
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(f) => { panic!(f.to_string()) }
+    };
+
+    if matches.opt_present("h") {
+        let brief = format!("Usage: {} [options]", program);
+        print!("{}", opts.usage(&brief));
+        return;
+    }
+
+    let raw_cache_path = matches.opt_str("d").unwrap_or_else(|| format!("{}", "~/.docker-compose-cacher"));
+    let cache_path = tilde(&raw_cache_path);
+    fs::create_dir_all(cache_path.as_ref()).unwrap();
+    let cache_path = fs::canonicalize(cache_path.as_ref()).unwrap().display().to_string();
+
 
   let mut f = File::open("docker-compose.yml").unwrap();
   let mut s = String::new();
@@ -32,14 +56,14 @@ fn main() {
   }
 
   for image in &images {
-      handle_image(image);
+      handle_image(&cache_path, image);
   }
-  prune_images(images);
+  prune_images(&cache_path, images);
 }
 
-fn prune_images(images: HashSet<&str>) {
-    let filenames: HashSet<String> = images.iter().map(|image| image_to_filename(image)).collect();
-    let globber = format!("{}/*.tgz", CACHE_PATH);
+fn prune_images(cache_path: &str, images: HashSet<&str>) {
+    let filenames: HashSet<String> = images.iter().map(|image| image_to_filename(&cache_path, image)).collect();
+    let globber = format!("{}/*.tgz", cache_path);
     for entry in glob(&globber).unwrap() {
         if let Ok(path) = entry {
             let f = path.display().to_string();
@@ -51,14 +75,14 @@ fn prune_images(images: HashSet<&str>) {
     }
 }
 
-fn image_to_filename(image: &str) -> String {
+fn image_to_filename(cache_path: &str, image: &str) -> String {
   let mut m = sha1::Sha1::new();
   m.update(image.as_bytes());
-  return format!("{}/{}.tgz", CACHE_PATH, m.digest().to_string());
+  return format!("{}/{}.tgz", cache_path, m.digest().to_string());
 }
 
-fn image_is_cached(image: &str) -> bool {
-  let filename = image_to_filename(&image);
+fn image_is_cached(cache_path: &str, image: &str) -> bool {
+  let filename = image_to_filename(&cache_path, &image);
   return Path::new(&filename).exists()
 }
 
@@ -71,8 +95,8 @@ fn fetch_image(image: &str) {
   assert!(status.success());
 }
 
-fn save_image(image: &str) {
-  let filename = image_to_filename(&image);
+fn save_image(cache_path: &str, image: &str) {
+  let filename = image_to_filename(&cache_path, &image);
   let status = Command::new("sh")
     .arg("-c")
     .arg(format!("docker save {} | gzip > {}", image, filename))
@@ -81,8 +105,8 @@ fn save_image(image: &str) {
   assert!(status.success());
 }
 
-fn load_image(image: &str) {
-  let filename = image_to_filename(&image);
+fn load_image(cache_path: &str, image: &str) {
+  let filename = image_to_filename(&cache_path, &image);
   let status = Command::new("sh")
     .arg("-c")
     .arg(format!("gunzip -c {} | docker load", filename))
@@ -91,11 +115,11 @@ fn load_image(image: &str) {
   assert!(status.success());
 }
 
-fn handle_image(image: &str) {
-  if !image_is_cached(&image) {
+fn handle_image(cache_path: &str, image: &str) {
+  if !image_is_cached(&cache_path, &image) {
     fetch_image(&image);
-    save_image(&image);
+    save_image(&cache_path, &image);
   } else {
-    load_image(&image);
+    load_image(&cache_path, &image);
   }
 }
