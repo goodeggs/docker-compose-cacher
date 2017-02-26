@@ -1,11 +1,14 @@
+extern crate glob;
 extern crate sha1;
 extern crate yaml_rust;
 
 use std::fs;
 use std::fs::File;
+use glob::glob;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process::Command;
+use std::collections::HashSet;
 
 use yaml_rust::{Yaml,YamlLoader};
 
@@ -21,12 +24,31 @@ fn main() {
   let docs = YamlLoader::load_from_str(&s).unwrap();
   let doc = &docs[0];
   let services = doc["services"].as_hash().unwrap();
+  let mut images = HashSet::new();
   for (_, service) in services {
-    match service["image"] {
-			Yaml::String(ref image) => handle_image(image.as_str()),
-      _ => continue
-    }
+      if let Yaml::String(ref image) = service["image"] {
+        images.insert(image.as_str());
+      }
   }
+
+  for image in &images {
+      handle_image(image);
+  }
+  prune_images(images);
+}
+
+fn prune_images(images: HashSet<&str>) {
+    let filenames: HashSet<String> = images.iter().map(|image| image_to_filename(image)).collect();
+    let globber = format!("{}/*.tgz", CACHE_PATH);
+    for entry in glob(&globber).unwrap() {
+        if let Ok(path) = entry {
+            let f = path.display().to_string();
+            if !filenames.contains(&f) {
+                println!("pruning {}", path.display());
+                fs::remove_file(f).unwrap();
+            }
+        }
+    }
 }
 
 fn image_to_filename(image: &str) -> String {

@@ -6,3 +6,4 @@ authors = ["Bob Zoller <bob@zoller.us>"]
 [dependencies]
 yaml-rust = "*"
 sha1 = "*"
+glob = "*"
