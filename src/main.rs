@@ -3,6 +3,7 @@ extern crate sha1;
 extern crate yaml_rust;
 extern crate getopts;
 extern crate shellexpand;
+extern crate rayon;
 
 use getopts::Options;
 use std::env;
@@ -14,6 +15,7 @@ use std::path::Path;
 use std::process::Command;
 use std::collections::HashSet;
 use shellexpand::tilde;
+use self::rayon::prelude::*;
 
 use yaml_rust::{Yaml,YamlLoader};
 
@@ -55,9 +57,10 @@ fn main() {
       }
   }
 
-  for image in &images {
+  images.par_iter().enumerate().for_each(|tup| {
+      let (_,image) = tup;
       handle_image(&cache_path, image);
-  }
+  });
   prune_images(&cache_path, images);
 }
 
