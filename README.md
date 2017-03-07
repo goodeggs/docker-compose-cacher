@@ -13,3 +13,14 @@ In one of our apps that depends on MongoDB, RabbitMQ, and Redis:
   - full cache: `21 seconds`
   - subsequent runs: `6 seconds` (where the Docker Images had already been loaded)
 
+Releasing
+===========
+
+```
+$ brew install goodeggs/delivery-eng/ghr goodeggs/delivery-eng/gitsem FiloSottile/musl-cross/musl-cross
+$ curl https://sh.rustup.rs -sSf | sh
+$ rustup target add x86_64-unknown-linux-musl
+$ gitsem {patch,minor,major}
+$ git push
+$ ./release.sh
+```
