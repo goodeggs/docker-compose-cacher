@@ -22,5 +22,5 @@ $ curl https://sh.rustup.rs -sSf | sh
 $ rustup target add x86_64-unknown-linux-musl
 $ gitsem {patch,minor,major}
 $ git push
-$ ./release.sh
+$ GITHUB_TOKEN="FIXME" ./release.sh
 ```
