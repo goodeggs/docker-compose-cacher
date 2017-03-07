@@ -19,5 +19,5 @@ cd target/x86_64-unknown-linux-musl/release && tar czvf ${releasedir}/docker-com
 cd -
 
 echo "releasing v${version}..."
-ghr -t "$GITHUB_TOKEN" -u goodeggs -r platform --replace "v${version}" "releases/${version}/"
+ghr -t "$GITHUB_TOKEN" -u goodeggs -r docker-compose-cacher --replace "v${version}" "releases/${version}/"
 
