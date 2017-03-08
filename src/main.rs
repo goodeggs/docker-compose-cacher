@@ -12,7 +12,7 @@ use std::fs::File;
 use glob::glob;
 use std::io::prelude::*;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::collections::HashSet;
 use shellexpand::tilde;
 use self::rayon::prelude::*;
@@ -93,6 +93,8 @@ fn fetch_image(image: &str) {
   let status = Command::new("docker")
     .arg("pull")
     .arg(image)
+    .stdin(Stdio::null())
+    .stdout(Stdio::null())
     .status()
     .unwrap();
   assert!(status.success());
